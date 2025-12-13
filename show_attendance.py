@@ -12,25 +12,74 @@ def subjectchoose(text_to_speech):
         if Subject=="":
             t='Please enter the subject name.'
             text_to_speech(t)
+            return
     
         filenames = glob(
-            f"Attendance\\{Subject}\\{Subject}*.csv"
+            f"attendance\\{Subject}\\{Subject}*.csv"
         )
+        
+        # Check if any attendance files exist
+        if not filenames:
+            t=f'No attendance records found for {Subject}.'
+            text_to_speech(t)
+            return
+            
         df = [pd.read_csv(f) for f in filenames]
-        newdf = df[0]
+        
+        # Check if dataframes were loaded
+        if not df:
+            t=f'No attendance records found for {Subject}.'
+            text_to_speech(t)
+            return
+            
+        newdf = df[0].copy()
         for i in range(1, len(df)):
             newdf = newdf.merge(df[i], how="outer")
         newdf.fillna(0, inplace=True)
-        newdf["Attendance"] = 0
+        
+        # Identify date columns (columns that are not standard fields)
+        standard_fields = ['Division', 'Enrollment', 'Roll Number', 'Name', 'Time', 'Attendance', 'Status', 'Roll']
+        date_columns = [col for col in newdf.columns if col not in standard_fields]
+        
+        # Remove old problematic columns
+        columns_to_remove = ['Time', 'Status', 'Division', 'Roll', 'Roll Number']
+        for col in columns_to_remove:
+            if col in newdf.columns and col not in ['Enrollment', 'Name']:
+                newdf = newdf.drop(columns=[col])
+        
+        # Re-identify date columns after cleanup
+        date_columns = [col for col in newdf.columns if col not in ['Enrollment', 'Name', 'Attendance']]
+        
+        # Initialize or update Attendance column
+        if 'Attendance' not in newdf.columns:
+            newdf["Attendance"] = ""
+        
+        # Calculate attendance percentage for each student
         for i in range(len(newdf)):
-            newdf["Attendance"].iloc[i] = str(int(round(newdf.iloc[i, 2:-1].mean() * 100)))+'%'
-            #newdf.sort_values(by=['Enrollment'],inplace=True)
-        newdf.to_csv(f"Attendance\\{Subject}\\attendance.csv", index=False)
+            if date_columns:
+                # Get only date columns
+                attendance_values = newdf.loc[i, date_columns]
+                # Convert to numeric, replacing any non-numeric values with 0
+                numeric_values = pd.to_numeric(attendance_values, errors='coerce').fillna(0)
+                # Calculate percentage (values should be 0 or 1)
+                if len(numeric_values) > 0:
+                    attendance_pct = round(numeric_values.mean() * 100, 2)
+                    newdf.loc[i, "Attendance"] = f"{attendance_pct:.2f}%"
+                else:
+                    newdf.loc[i, "Attendance"] = "0.00%"
+            else:
+                newdf.loc[i, "Attendance"] = "0.00%"
+        
+        # Reorder columns: Enrollment, Name, date columns, Attendance
+        final_columns = ['Enrollment', 'Name'] + date_columns + ['Attendance']
+        newdf = newdf[final_columns]
+        
+        newdf.to_csv(f"attendance\\{Subject}\\attendance.csv", index=False)
 
         root = tkinter.Tk()
         root.title("Attendance of "+Subject)
         root.configure(background="black")
-        cs = f"Attendance\\{Subject}\\attendance.csv"
+        cs = f"attendance\\{Subject}\\attendance.csv"
         with open(cs) as file:
             reader = csv.reader(file)
             r = 0
@@ -84,7 +133,7 @@ def subjectchoose(text_to_speech):
             text_to_speech(t)
         else:
             os.startfile(
-            f"Attendance\\{sub}"
+            f"attendance\\{sub}"
             )
 
 

@@ -17,8 +17,8 @@ import glob
 
 # project module
 import show_attendance
-import takeImage
-import trainImage
+import take_image
+import train_image
 import automated_attendance
 
 # engine = pyttsx3.init()
@@ -41,16 +41,16 @@ def text_to_speech(text):
 
 haarcasecade_path = "haarcascade_frontalface_default.xml"
 trainimagelabel_path = (
-    "./TrainingImageLabel/Trainner.yml"
+    "./models/Trainner.yml"
 )
-trainimage_path = "./TrainingImage"
+trainimage_path = "./training_images"
 if not os.path.exists(trainimage_path):
     os.makedirs(trainimage_path)
 
 studentdetail_path = (
-    "./StudentDetails/studentdetails.csv"
+    "./student_details/studentdetails.csv"
 )
-attendance_path = "Attendance"
+attendance_path = "attendance"
 
 # to destroy screen
 def del_sc1():
@@ -222,7 +222,7 @@ def TakeImageUI():
             err_screen()
             return
             
-        takeImage.TakeImage(
+        take_image.TakeImage(
             enrollment,
             name,
             haarcasecade_path,
@@ -278,7 +278,7 @@ def TakeImageUI():
             ).pack(pady=10)
             return
         
-        trainImage.TrainImage(
+        train_image.TrainImage(
             haarcasecade_path,
             trainimage_path,
             trainimagelabel_path,

@@ -13,10 +13,10 @@ import tkinter.font as font
 import pyttsx3
 
 haarcasecade_path = "haarcascade_frontalface_default.xml"
-trainimagelabel_path = "TrainingImageLabel\\Trainner.yml"
-trainimage_path = "TrainingImage"
-studentdetail_path = "StudentDetails\\studentdetails.csv"
-attendance_path = "Attendance"
+trainimagelabel_path = "models\\Trainner.yml"
+trainimage_path = "training_images"
+studentdetail_path = "student_details\\studentdetails.csv"
+attendance_path = "attendance"
 
 def text_to_speech(user_text):
     engine = pyttsx3.init()
@@ -117,9 +117,48 @@ def take_attendance_for_slot(slot_name, subject):
             path = os.path.join(attendance_path, subject)
             if not os.path.exists(path):
                 os.makedirs(path)
-                
+            
+            # Save detailed session file
             fileName = f"{path}/{subject}_{slot_name}_{date}_{Hour}-{Minute}-{Second}.csv"
             attendance.to_csv(fileName, index=False)
+            
+            # Update main attendance file with date column
+            main_attendance_file = os.path.join(path, "attendance.csv")
+            
+            # Create attendance update with date column
+            attendance_update = pd.DataFrame({
+                'Enrollment': attendance['Enrollment'],
+                'Name': attendance['Name'],
+                date: [1] * len(attendance)  # Mark present with 1
+            })
+            
+            if os.path.exists(main_attendance_file):
+                # Read existing attendance
+                existing_df = pd.read_csv(main_attendance_file)
+                
+                # Remove old Attendance column if it exists
+                if 'Attendance' in existing_df.columns:
+                    existing_df = existing_df.drop(columns=['Attendance'])
+                
+                # Remove Time column if it exists  
+                if 'Time' in existing_df.columns:
+                    existing_df = existing_df.drop(columns=['Time'])
+                
+                # Merge with new attendance
+                merged_df = existing_df.merge(
+                    attendance_update,
+                    on=['Enrollment', 'Name'],
+                    how='outer'
+                )
+                
+                # Fill NaN with 0 (absent)
+                merged_df = merged_df.fillna(0)
+                
+                # Save updated attendance
+                merged_df.to_csv(main_attendance_file, index=False)
+            else:
+                # Create new attendance file
+                attendance_update.to_csv(main_attendance_file, index=False)
             
             return f"Attendance saved successfully for {slot_name}"
         else:
@@ -131,7 +170,7 @@ def take_attendance_for_slot(slot_name, subject):
 def start_automated_attendance(subject, duration=10):
     try:
         # Create directory for subject if it doesn't exist
-        subject_dir = f"Attendance/{subject}"
+        subject_dir = f"attendance/{subject}"
         if not os.path.exists(subject_dir):
             os.makedirs(subject_dir)
         

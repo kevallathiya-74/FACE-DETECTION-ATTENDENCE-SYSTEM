@@ -4,14 +4,14 @@ import numpy as np
 import pandas as pd
 import datetime
 import time
-from trainImage import TrainImage
+from train_image import TrainImage
 
 # Initialize the student details CSV file if it doesn't exist
 def initialize_csv():
-    if not os.path.exists("StudentDetails"):
-        os.makedirs("StudentDetails")
+    if not os.path.exists("student_details"):
+        os.makedirs("student_details")
     
-    csv_file = "StudentDetails/studentdetails.csv"
+    csv_file = "student_details/studentdetails.csv"
     if not os.path.exists(csv_file):
         with open(csv_file, "w", newline="") as csvFile:
             writer = csv.writer(csvFile)
@@ -76,7 +76,7 @@ def TakeImage(l1, l2, haarcasecade_path, trainimage_path, message, err_screen, t
     else:
         try:
             # Check if student already exists
-            df = pd.read_csv("StudentDetails/studentdetails.csv")
+            df = pd.read_csv("student_details/studentdetails.csv")
             if l1 in df['Enrollment'].values:
                 F = "Student Data already exists"
                 text_to_speech(F)
@@ -212,14 +212,14 @@ def TakeImage(l1, l2, haarcasecade_path, trainimage_path, message, err_screen, t
                     'Name': [Name]
                 })
                 df = pd.concat([df, new_student], ignore_index=True)
-                df.to_csv("StudentDetails/studentdetails.csv", index=False)
+                df.to_csv("student_details/studentdetails.csv", index=False)
                 
                 res = "Images Saved for ER No:" + Enrollment + " Name:" + Name
                 message.configure(text=res)
                 text_to_speech(res)
                 
                 # Train the model after successful registration
-                trainimagelabel_path = "TrainingImageLabel/Trainner.yml"
+                trainimagelabel_path = "models/Trainner.yml"
                 TrainImage(haarcasecade_path, trainimage_path, trainimagelabel_path, message, text_to_speech)
             else:
                 res = "Registration failed. Please try again."
