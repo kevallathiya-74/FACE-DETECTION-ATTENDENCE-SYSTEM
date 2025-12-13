@@ -1,0 +1,66 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual Environments
+venv/
+env/
+ENV/
+.venv/
+.env
+
+# IDE & Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# Project Specific - Training Data
+TrainingImage/
+TrainingImageLabel/*.yml
+*.yml
+
+# Project Specific - Attendance Records
+Attendance/**/*.csv
+!Attendance/**/attendance.csv
+
+# Project Specific - Student Data (sensitive)
+StudentDetails/*.csv
+
+# Project Specific - Screenshots & Project Images
+Project Snap/
+UI_Image/
+
+# System Files
+bash.exe.stackdump
+*.stackdump
+
+# Logs
+*.log
+
+# Test files
+test.py
+*_test.py
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+temp/
+tmp/
