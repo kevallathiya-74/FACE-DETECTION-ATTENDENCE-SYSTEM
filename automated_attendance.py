@@ -323,62 +323,92 @@ def subjectChoose(text_to_speech_func):
     import tkinter as tk
     from tkinter import END
     
+    # Modern colors
+    BG_DARK = "#0a0e27"
+    CARD_BG = "#1a1d35"
+    ACCENT_BLUE = "#0096c7"
+    TEXT_WHITE = "#f0f4f8"
+    TEXT_GRAY = "#a5b4c9"
+    INPUT_BG = "#252d4a"
+    
     subject_window = tk.Tk()
-    subject_window.title("Take Attendance")
-    subject_window.geometry("400x250")
-    subject_window.configure(background="#1c1c1c")
+    subject_window.title("SmartAttend - Take Attendance")
+    subject_window.geometry("550x500")
+    subject_window.configure(background=BG_DARK)
     subject_window.resizable(0, 0)
+    
+    # Main container
+    main_frame = tk.Frame(subject_window, bg=BG_DARK)
+    main_frame.pack(fill="both", expand=True, padx=30, pady=25)
+    
+    # Icon
+    tk.Label(
+        main_frame,
+        text="👤",
+        bg=BG_DARK,
+        fg=ACCENT_BLUE,
+        font=("Segoe UI", 42)
+    ).pack(pady=(0, 10))
     
     # Title
     tk.Label(
-        subject_window,
+        main_frame,
         text="Take Attendance",
-        bg="#1c1c1c",
-        fg="#00ff00",
-        font=("Verdana", 20, "bold")
-    ).pack(pady=20)
+        bg=BG_DARK,
+        fg=TEXT_WHITE,
+        font=("Segoe UI", 26, "bold")
+    ).pack(pady=(0, 30))
+    
+    # Input card
+    input_card = tk.Frame(main_frame, bg=CARD_BG, highlightthickness=2, highlightbackground=ACCENT_BLUE)
+    input_card.pack(fill="x", pady=(0, 20))
     
     # Subject entry frame
-    entry_frame = tk.Frame(subject_window, bg="#1c1c1c")
-    entry_frame.pack(pady=20)
+    entry_frame = tk.Frame(input_card, bg=CARD_BG)
+    entry_frame.pack(pady=25, padx=30)
     
     tk.Label(
         entry_frame,
         text="Subject:",
-        bg="#1c1c1c",
-        fg="#00ff00",
-        font=("Verdana", 12)
-    ).pack(side="left", padx=10)
+        bg=CARD_BG,
+        fg=TEXT_WHITE,
+        font=("Segoe UI", 14, "bold")
+    ).pack(side="left", padx=(0, 20))
     
     subject_entry = tk.Entry(
         entry_frame,
-        width=20,
-        bg="#333333",
-        fg="#00ff00",
-        font=("Verdana", 12),
-        relief="flat"
+        width=25,
+        bg=INPUT_BG,
+        fg=TEXT_WHITE,
+        font=("Segoe UI", 13),
+        relief="flat",
+        bd=0,
+        insertbackground=TEXT_WHITE,
+        highlightthickness=2,
+        highlightbackground="#2a3f5f",
+        highlightcolor=ACCENT_BLUE
     )
-    subject_entry.pack(side="left", padx=10)
+    subject_entry.pack(side="left", ipady=10, padx=10)
     
     # Notification label
     notification = tk.Label(
-        subject_window,
+        main_frame,
         text="",
-        bg="#1c1c1c",
-        fg="#00ff00",
-        font=("Verdana", 10),
-        wraplength=350
+        bg=BG_DARK,
+        fg=TEXT_GRAY,
+        font=("Segoe UI", 11),
+        wraplength=450
     )
     notification.pack(pady=10)
     
     def start_attendance():
         subject = subject_entry.get().strip()
         if not subject:
-            notification.configure(text="Please enter a subject name!", fg="yellow")
+            notification.configure(text="Please enter a subject name!", fg="#fbbf24")
             text_to_speech_func("Please enter subject name")
             return
         
-        notification.configure(text=f"Starting attendance for {subject}...", fg="#00ff00")
+        notification.configure(text=f"Starting attendance for {subject}...", fg=ACCENT_BLUE)
         subject_window.update()
         
         # Take attendance using current slot
@@ -393,16 +423,24 @@ def subjectChoose(text_to_speech_func):
         text_to_speech_func(result)
     
     # Take Attendance button
-    tk.Button(
-        subject_window,
-        text="Take Attendance",
+    attend_btn = tk.Button(
+        main_frame,
+        text="📋 Take Attendance",
         command=start_attendance,
-        bg="#2c2c2c",
-        fg="#00ff00",
-        font=("Verdana", 12),
+        bg=ACCENT_BLUE,
+        fg=TEXT_WHITE,
+        font=("Segoe UI", 14, "bold"),
         relief="flat",
-        padx=20,
-        pady=10
-    ).pack(pady=20)
+        bd=0,
+        padx=40,
+        pady=15,
+        cursor="hand2",
+        highlightthickness=0
+    )
+    attend_btn.pack(pady=(20, 0))
+    
+    # Button hover effects
+    attend_btn.bind("<Enter>", lambda e: attend_btn.configure(bg="#0077a3"))
+    attend_btn.bind("<Leave>", lambda e: attend_btn.configure(bg=ACCENT_BLUE))
     
     subject_window.mainloop() 

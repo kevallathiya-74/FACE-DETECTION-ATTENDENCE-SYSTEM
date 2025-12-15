@@ -14,28 +14,27 @@ def subjectchoose(text_to_speech):
             text_to_speech(t)
             return
     
-        filenames = glob(
-            f"attendance\\{Subject}\\{Subject}*.csv"
-        )
+        # Check if main attendance file exists
+        main_file = f"attendance\\{Subject}\\attendance.csv"
         
-        # Check if any attendance files exist
-        if not filenames:
-            t=f'No attendance records found for {Subject}.'
-            text_to_speech(t)
-            return
+        if not os.path.exists(main_file):
+            # Try to find session files
+            filenames = glob(f"attendance\\{Subject}\\{Subject}*.csv")
             
-        df = [pd.read_csv(f) for f in filenames]
-        
-        # Check if dataframes were loaded
-        if not df:
-            t=f'No attendance records found for {Subject}.'
-            text_to_speech(t)
-            return
+            if not filenames:
+                t=f'No attendance records found for {Subject}.'
+                text_to_speech(t)
+                return
             
-        newdf = df[0].copy()
-        for i in range(1, len(df)):
-            newdf = newdf.merge(df[i], how="outer")
-        newdf.fillna(0, inplace=True)
+            # Merge all session files
+            df = [pd.read_csv(f) for f in filenames]
+            newdf = df[0].copy()
+            for i in range(1, len(df)):
+                newdf = newdf.merge(df[i], how="outer")
+            newdf.fillna(0, inplace=True)
+        else:
+            # Read the main attendance file
+            newdf = pd.read_csv(main_file)
         
         # Identify date columns (columns that are not standard fields)
         standard_fields = ['Division', 'Enrollment', 'Roll Number', 'Name', 'Time', 'Attendance', 'Status', 'Roll']
@@ -50,6 +49,11 @@ def subjectchoose(text_to_speech):
         # Re-identify date columns after cleanup
         date_columns = [col for col in newdf.columns if col not in ['Enrollment', 'Name', 'Attendance']]
         
+        # Print debug info
+        print(f"Date columns found: {date_columns}")
+        print(f"DataFrame shape: {newdf.shape}")
+        print(f"DataFrame columns: {newdf.columns.tolist()}")
+        
         # Initialize or update Attendance column
         if 'Attendance' not in newdf.columns:
             newdf["Attendance"] = ""
@@ -63,8 +67,11 @@ def subjectchoose(text_to_speech):
                 numeric_values = pd.to_numeric(attendance_values, errors='coerce').fillna(0)
                 # Calculate percentage (values should be 0 or 1)
                 if len(numeric_values) > 0:
-                    attendance_pct = round(numeric_values.mean() * 100, 2)
+                    total_days = len(numeric_values)
+                    present_days = numeric_values.sum()
+                    attendance_pct = round((present_days / total_days) * 100, 2)
                     newdf.loc[i, "Attendance"] = f"{attendance_pct:.2f}%"
+                    print(f"Student {i}: Present {present_days}/{total_days} days = {attendance_pct}%")
                 else:
                     newdf.loc[i, "Attendance"] = "0.00%"
             else:
@@ -77,8 +84,81 @@ def subjectchoose(text_to_speech):
         newdf.to_csv(f"attendance\\{Subject}\\attendance.csv", index=False)
 
         root = tkinter.Tk()
-        root.title("Attendance of "+Subject)
-        root.configure(background="black")
+        root.title(f"SmartAttend - {Subject} Attendance Report")
+        root.state('zoomed')  # Maximize window
+        
+        # Modern colors
+        BG_DARK = "#0a0e27"
+        BG_MID = "#16213e"
+        CARD_BG = "#1a1d35"
+        ACCENT_BLUE = "#0096c7"
+        TEXT_WHITE = "#f0f4f8"
+        TEXT_GRAY = "#a5b4c9"
+        ROW_EVEN = "#1f2540"
+        ROW_ODD = "#252d4a"
+        
+        root.configure(background=BG_DARK)
+        
+        # Main container
+        container = tk.Frame(root, bg=BG_DARK)
+        container.pack(fill=BOTH, expand=True, padx=40, pady=30)
+        
+        # Header
+        header = tk.Frame(container, bg=BG_DARK)
+        header.pack(fill=X, pady=(0, 25))
+        
+        # Title
+        title_frame = tk.Frame(header, bg=BG_DARK)
+        title_frame.pack(side=LEFT)
+        
+        tk.Label(
+            title_frame,
+            text=f"📊 {Subject}",
+            bg=BG_DARK,
+            fg=TEXT_WHITE,
+            font=("Segoe UI", 32, "bold")
+        ).pack(anchor="w")
+        
+        tk.Label(
+            title_frame,
+            text=f"Total Students: {len(newdf)} • Attendance Report",
+            bg=BG_DARK,
+            fg=TEXT_GRAY,
+            font=("Segoe UI", 13)
+        ).pack(anchor="w", pady=(5, 0))
+        
+        # Table card
+        table_card = tk.Frame(container, bg=CARD_BG, highlightthickness=3, highlightbackground=ACCENT_BLUE)
+        table_card.pack(fill=BOTH, expand=True)
+        
+        # Scrollable frame
+        scroll_frame = tk.Frame(table_card, bg=CARD_BG)
+        scroll_frame.pack(fill=BOTH, expand=True, padx=15, pady=15)
+        
+        # Scrollbars
+        h_scroll = tk.Scrollbar(scroll_frame, orient=HORIZONTAL, bg=CARD_BG)
+        h_scroll.pack(side=BOTTOM, fill=X)
+        
+        v_scroll = tk.Scrollbar(scroll_frame, orient=VERTICAL, bg=CARD_BG)
+        v_scroll.pack(side=RIGHT, fill=Y)
+        
+        # Canvas
+        canvas = tk.Canvas(
+            scroll_frame,
+            bg=CARD_BG,
+            highlightthickness=0,
+            xscrollcommand=h_scroll.set,
+            yscrollcommand=v_scroll.set
+        )
+        canvas.pack(side=LEFT, fill=BOTH, expand=True)
+        
+        h_scroll.config(command=canvas.xview)
+        v_scroll.config(command=canvas.yview)
+        
+        # Table frame
+        table_frame = tk.Frame(canvas, bg=CARD_BG)
+        canvas.create_window((0, 0), window=table_frame, anchor="nw")
+        
         cs = f"attendance\\{Subject}\\attendance.csv"
         with open(cs) as file:
             reader = csv.reader(file)
@@ -87,44 +167,131 @@ def subjectchoose(text_to_speech):
             for col in reader:
                 c = 0
                 for row in col:
-
-                    label = tkinter.Label(
-                        root,
-                        width=10,
-                        height=1,
-                        fg="yellow",
-                        font=("times", 15, " bold "),
-                        bg="black",
-                        text=row,
-                        relief=tkinter.RIDGE,
-                    )
-                    label.grid(row=r, column=c)
+                    # Header row
+                    if r == 0:
+                        label = tkinter.Label(
+                            table_frame,
+                            width=15,
+                            height=2,
+                            fg=TEXT_WHITE,
+                            font=("Segoe UI", 12, "bold"),
+                            bg=ACCENT_BLUE,
+                            text=row,
+                            relief=tkinter.FLAT,
+                            padx=10,
+                            pady=8
+                        )
+                    else:
+                        # Data rows with alternating colors
+                        bg_color = ROW_EVEN if r % 2 == 0 else ROW_ODD
+                        label = tkinter.Label(
+                            table_frame,
+                            width=15,
+                            height=1,
+                            fg=TEXT_WHITE,
+                            font=("Segoe UI", 11),
+                            bg=bg_color,
+                            text=row,
+                            relief=tkinter.FLAT,
+                            padx=10,
+                            pady=10
+                        )
+                    label.grid(row=r, column=c, sticky="nsew", padx=1, pady=1)
                     c += 1
                 r += 1
+        
+        # Update canvas scroll region
+        table_frame.update_idletasks()
+        canvas.config(scrollregion=canvas.bbox("all"))
+        
         root.mainloop()
         print(newdf)
 
     subject = Tk()
-    # windo.iconbitmap("AMS.ico")
-    subject.title("Subject...")
-    subject.geometry("580x320")
-    subject.resizable(0, 0)
-    subject.configure(background="black")
-    # subject_logo = Image.open("UI_Image/0004.png")
-    # subject_logo = subject_logo.resize((50, 47), Image.ANTIALIAS)
-    # subject_logo1 = ImageTk.PhotoImage(subject_logo)
-    titl = tk.Label(subject, bg="black", relief=RIDGE, bd=10, font=("arial", 30))
-    titl.pack(fill=X)
-    # l1 = tk.Label(subject, image=subject_logo1, bg="black",)
-    # l1.place(x=100, y=10)
-    titl = tk.Label(
-        subject,
-        text="Which Subject of Attendance?",
-        bg="black",
-        fg="green",
-        font=("arial", 25),
+    subject.title("SmartAttend - View Attendance")
+    subject.geometry("900x650")
+    
+    # Modern colors
+    BG_DARK = "#0a0e27"
+    CARD_BG = "#1a1d35"
+    ACCENT_BLUE = "#0096c7"
+    TEXT_WHITE = "#f0f4f8"
+    TEXT_GRAY = "#a5b4c9"
+    INPUT_BG = "#252d4a"
+    
+    subject.configure(background=BG_DARK)
+    subject.resizable(1, 1)
+    
+    # Main container
+    main_frame = tk.Frame(subject, bg=BG_DARK)
+    main_frame.pack(fill=BOTH, expand=True, padx=50, pady=40)
+    
+    # Header
+    header_frame = tk.Frame(main_frame, bg=BG_DARK)
+    header_frame.pack(fill=X, pady=(0, 30))
+    
+    # Icon
+    icon_label = tk.Label(
+        header_frame,
+        text="📊",
+        bg=BG_DARK,
+        fg=ACCENT_BLUE,
+        font=("Segoe UI", 56)
     )
-    titl.place(x=100, y=12)
+    icon_label.pack()
+    
+    title_label = tk.Label(
+        header_frame,
+        text="View Attendance",
+        bg=BG_DARK,
+        fg=TEXT_WHITE,
+        font=("Segoe UI", 36, "bold")
+    )
+    title_label.pack(pady=(10, 5))
+    
+    subtitle_label = tk.Label(
+        header_frame,
+        text="Select a subject to view attendance records and statistics",
+        bg=BG_DARK,
+        fg=TEXT_GRAY,
+        font=("Segoe UI", 12)
+    )
+    subtitle_label.pack()
+    
+    # Card frame
+    card_frame = tk.Frame(main_frame, bg=CARD_BG, highlightthickness=3, highlightbackground=ACCENT_BLUE)
+    card_frame.pack(fill=BOTH, expand=True, pady=20)
+    
+    # Input frame
+    input_frame = tk.Frame(card_frame, bg=CARD_BG)
+    input_frame.pack(pady=60, padx=50)
+    
+    # Subject label
+    sub_label = tk.Label(
+        input_frame,
+        text="Subject Name:",
+        bg=CARD_BG,
+        fg=TEXT_WHITE,
+        font=("Segoe UI", 16, "bold")
+    )
+    sub_label.pack(pady=(0, 20))
+    
+    # Subject entry
+    tx = tk.Entry(
+        input_frame,
+        width=35,
+        bg=INPUT_BG,
+        fg=TEXT_WHITE,
+        font=("Segoe UI", 16),
+        relief="flat",
+        bd=0,
+        insertbackground=TEXT_WHITE,
+        highlightthickness=2,
+        highlightbackground="#2a3f5f",
+        highlightcolor=ACCENT_BLUE,
+        justify=CENTER
+    )
+    tx.pack(ipady=15, pady=(0, 40))
 
     def Attf():
         sub = tx.get()
@@ -136,56 +303,43 @@ def subjectchoose(text_to_speech):
             f"attendance\\{sub}"
             )
 
-
-    attf = tk.Button(
-        subject,
-        text="Check Sheets",
-        command=Attf,
-        bd=7,
-        font=("times new roman", 15),
-        bg="black",
-        fg="yellow",
-        height=2,
-        width=10,
-        relief=RIDGE,
-    )
-    attf.place(x=360, y=170)
-
-    sub = tk.Label(
-        subject,
-        text="Enter Subject",
-        width=10,
-        height=2,
-        bg="black",
-        fg="yellow",
-        bd=5,
-        relief=RIDGE,
-        font=("times new roman", 15),
-    )
-    sub.place(x=50, y=100)
-
-    tx = tk.Entry(
-        subject,
-        width=15,
-        bd=5,
-        bg="black",
-        fg="yellow",
-        relief=RIDGE,
-        font=("times", 30, "bold"),
-    )
-    tx.place(x=190, y=100)
-
-    fill_a = tk.Button(
-        subject,
-        text="View Attendance",
-        command=calculate_attendance,
-        bd=7,
-        font=("times new roman", 15),
-        bg="black",
-        fg="yellow",
-        height=2,
-        width=12,
-        relief=RIDGE,
-    )
-    fill_a.place(x=195, y=170)
+    # Buttons frame
+    btn_frame = tk.Frame(input_frame, bg=CARD_BG)
+    btn_frame.pack()
+    
+    # Modern button creator
+    def create_button(parent, text, command, bg_color, icon=""):
+        btn = tk.Button(
+            parent,
+            text=f"{icon} {text}",
+            command=command,
+            bg=bg_color,
+            fg="#ffffff",
+            font=("Segoe UI", 13, "bold"),
+            relief="flat",
+            bd=0,
+            padx=35,
+            pady=14,
+            cursor="hand2",
+            highlightthickness=0
+        )
+        
+        hover_colors = {
+            "#0096c7": "#0077a3",
+            "#06ffa5": "#05e094",
+        }
+        hover_color = hover_colors.get(bg_color, bg_color)
+        
+        btn.bind("<Enter>", lambda e: btn.config(bg=hover_color))
+        btn.bind("<Leave>", lambda e: btn.config(bg=bg_color))
+        
+        return btn
+    
+    # Buttons
+    view_btn = create_button(btn_frame, "View Attendance", calculate_attendance, "#0096c7", "📊")
+    view_btn.pack(side=LEFT, padx=15)
+    
+    folder_btn = create_button(btn_frame, "Open Folder", Attf, "#06ffa5", "📁")
+    folder_btn.pack(side=LEFT, padx=15)
+    
     subject.mainloop()
