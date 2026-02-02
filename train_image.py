@@ -17,6 +17,11 @@ def TrainImage(haarcasecade_path, trainimage_path, trainimagelabel_path, message
         text_to_speech(res)
         return
     
+    # Create models directory if it doesn't exist
+    model_dir = os.path.dirname(trainimagelabel_path)
+    if model_dir and not os.path.exists(model_dir):
+        os.makedirs(model_dir)
+    
     recognizer.train(faces, np.array(Id))
     recognizer.save(trainimagelabel_path)
     res = "Image Trained successfully"  # +",".join(str(f) for f in Id)
