@@ -290,4 +290,5 @@ For support, email your.email@example.com or open an issue on GitHub.
 Made with ❤️ by [Your Name]
 
 ⭐ Star this repository if you find it helpful!
-</div>
+</div>#   F A C E - D E T E C T I O N - A T T E N D E N C E - S Y S T E M  
+ 
